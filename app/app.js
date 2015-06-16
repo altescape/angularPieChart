@@ -10,44 +10,63 @@
       draw: function() {
         Chart.types.Doughnut.prototype.draw.apply(this, arguments);
         
+        // Segment labels        
         this.chart.ctx.textAlign = 'center';
         this.chart.ctx.textBaseline = 'middle';
         this.chart.ctx.fillStyle = '#FFF';
-        this.chart.ctx.fontWeight = 'bold';
+        this.chart.ctx.font = 'bold 10px Helvetica';
 
         var radius = -this.chart.height;
         var x = this.chart.width / 2; 
         var y = this.chart.height / 2; 
         var total_benefits = 0;
-
         var lradius = radius / 2.5;
-        for(var i = 0, segments = this.segments; i < segments.length; i++) {
-          if (segments[i].value > 0) {
-            var dx = lradius * Math.cos(segments[i].endAngle + segments[i].circumference / 2 + Math.PI) + x;
-            var dy = lradius * Math.sin(segments[i].endAngle + segments[i].circumference / 2 + Math.PI) + y;
-            this.chart.ctx.fillText(segments[i].value, dx, dy);
-            total_benefits += segments[i].value;
+
+        angular.forEach(this.segments, function (value, key) {
+          console.log(value);
+          if (value.circumference > 0.15) {
+            var dx = lradius * Math.cos(value.startAngle + value.circumference / 2 + Math.PI) + x;
+            var dy = lradius * Math.sin(value.startAngle + value.circumference / 2 + Math.PI) + y;
+
+            // Segment, Text & Shadow 
+            this.chart.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            this.chart.ctx.shadowBlur = 3;
+            this.chart.ctx.shadowOffsetX = 1;
+            this.chart.ctx.shadowOffsetY = 1;
+            this.chart.ctx.fontWeight = 'bold';
+            this.chart.ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            this.chart.ctx.fillText(value.value.toFixed(1), dx, dy);
+
+            total_benefits += value.value; 
           }
-        }
+        }, this);
+
+        // Reset shadow
+        this.chart.ctx.shadowColor = 'rgba(0,0,0,0)';
+        this.chart.ctx.shadowBlur = 0;
+        this.chart.ctx.shadowOffsetX = 0;
+        this.chart.ctx.shadowOffsetY = 0;
 
         // Center label
+        this.chart.ctx.font = 'normal 12px Helvetica';
         this.chart.ctx.fontWeight = 'normal';
         this.chart.ctx.fillStyle = '#AAA';
         this.chart.ctx.fillText('TOTAL BENEFITS', x, y-5);
         this.chart.ctx.fillStyle = '#666';
-        this.chart.ctx.fillText(total_benefits + "M", x, y+5);
+        this.chart.ctx.fillText(total_benefits.toFixed(1) + "M", x, y+8);
       }
     });
 
-    return new ChartJsFactory('DoughnutAlt'); });
+    return new ChartJsFactory('DoughnutAlt');
+  });
 
   app.config(function (ChartJsProvider) {
     // Configure all charts
     ChartJsProvider.setOptions({
-      animation: false,
-      animationSteps: 10,
-      animationEasing: 'easeInOutQuad',
-      colours: ['#97BBCD', '#DCDCDC', '#F7464A', '#46BFBD', '#FDB45C', '#949FB1', '#4D5360', '#FC0', '#C50AFA', '#F210CD'],
+      animation: true,
+      animationSteps: 30,
+      animationEasing: 'easeInOutQuint',
+      colours: ['#c66119', '#c61954', '#b657bb', '#42589d', '#808122', '#3e2047', '#2886a9', '#7b241f', '#c1a735', '#213a3f'],
       responsive: true,
       showTooltips: false
     });
@@ -61,45 +80,78 @@
   });
 
   app.controller('DoughnutCtrl', ['$scope', '$timeout', function ($scope, $timeout) {
-    $scope.labels = [
-      'Airfare Insight - Cost', 
-      'Airfare Insight - Revenue', 
-      'ARR', 
-      'Bundled Network', 
-      'Channel Shift', 
-      'Horizon Service Fees/EMD', 
-      'Real Time Revenue Integrity', 
-      'Revenue Integrity', 
-      'W&B Central Load Control', 
-      'W&B CMAP', 
+
+    $scope.doughnut_data = [
+      {
+        value: 0,
+        color: '#c66119',
+        label: 'Airfare Insight - Cost'
+      },
+      {
+        value: 0,
+        color: '#c61954',
+        label: 'Airfare Insight - Revenue'
+      },
+      {
+        value: 0,
+        color: '#b657bb',
+        label: 'ARR' 
+      },
+      {
+        value: 0,
+        color: '#42589d',
+        label: 'Bundled Network'
+      },
+      {
+        value: 0,
+        color: '#808122',
+        label: 'Channel Shift'
+      },
+      {
+        value: 0,
+        color: '#3e2047',
+        label: 'Horizon Service Fees/EMD'
+      },
+      {
+        value: 0,
+        color: '#2886a9',
+        label: 'Real Time Revenue Integrity'
+      },
+      {
+        value: 0,
+        color: '#7b241f',
+        label: 'Revenue Integrity'
+      },
+      {
+        value: 0,
+        color: '#c1a735',
+        label: 'W&B Central Load Control'
+      },
+      {
+        value: 0,
+        color: '#213a3f',
+        label: 'W&B CMAP'
+      }
     ];
 
-    $scope.nums = {};
-    $scope.nums.inp1 = $scope.nums.inp1 || 1;
-    $scope.nums.inp2 = $scope.nums.inp2 || 1;
-    $scope.nums.inp3 = $scope.nums.inp3 || 1;
-    $scope.nums.inp4 = $scope.nums.inp4 || 1;
-    $scope.nums.inp5 = $scope.nums.inp5 || 1;
-    $scope.nums.inp6 = $scope.nums.inp6 || 1;
-    $scope.nums.inp7 = $scope.nums.inp7 || 1;
-    $scope.nums.inp8 = $scope.nums.inp8 || 1;
-    $scope.nums.inp9 = $scope.nums.inp9 || 1;
-    $scope.nums.inp10 = $scope.nums.inp10 || 1;
+    var get_data =  function (data) {
+      var data_array = [];
+      var label_array = [];
+      var colors_array = [];
+      angular.forEach(data, function (value, key) {
+        if (!isNaN(value.value)) {
+          data_array.push(value.value);
+          label_array.push(value.label);
+          colors_array.push(value.color);
+        }
+      });
+      $scope.data = data_array;
+      $scope.labels = label_array;
+    };
 
-    $scope.data = [];
 
     $scope.update_chart = function() {
-      $scope.data[0] = $scope.nums.inp1;
-      $scope.data[1] = $scope.nums.inp2;
-      $scope.data[2] = $scope.nums.inp3;
-      $scope.data[3] = $scope.nums.inp4;
-      $scope.data[4] = $scope.nums.inp5;
-      $scope.data[5] = $scope.nums.inp6;
-      $scope.data[6] = $scope.nums.inp7;
-      $scope.data[7] = $scope.nums.inp8;
-      $scope.data[8] = $scope.nums.inp9;
-      $scope.data[9] = $scope.nums.inp10;
-      console.log($scope.data);
+      get_data($scope.doughnut_data);
     };
 
   }]);
